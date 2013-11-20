@@ -1,7 +1,13 @@
-﻿@{
+﻿@model htaccessExtension.Models.HTAccessModel
+@{
     ViewBag.Title = "Index";
 }
 
 <h2>Convert .htaccess mod_rewrite rules</h2>
-<label for="htaccess">.htaccess file:</label>
-<input id="htaccess" name="htaccess" type="file" />
+@using (Html.BeginForm("Index", "Home", FormMethod.Post, new { enctype="multipart/form-data" }))
+{
+    @Html.TextBoxFor(m => m.File, new { type = "file" });
+    <input type="submit" id="submit" />
+}
+
+@Html.TextAreaFor(m => m.FileContents)
