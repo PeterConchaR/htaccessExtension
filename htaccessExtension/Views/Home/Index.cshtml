@@ -3,11 +3,19 @@
     ViewBag.Title = "Index";
 }
 
-<h2>Convert .htaccess mod_rewrite rules</h2>
-@using (Html.BeginForm("Index", "Home", FormMethod.Post, new { enctype="multipart/form-data" }))
-{
-    @Html.TextBoxFor(m => m.File, new { type = "file" });
-    <input type="submit" id="submit" />
-}
+<h2>Import mod_rewrite Rules</h2>
+<fieldset>
+    <legend>Rules to Import</legend>
+    @using (Html.BeginForm("Index", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        @Html.LabelFor(m => m.File)
+        @Html.TextBoxFor(m => m.File, new { type = "file", value = "..." });
+        <input type="submit" id="submit" value="Import" />
+    }
+    @Html.TextAreaFor(m => m.HTAccessFile)
+</fieldset>
 
-@Html.TextAreaFor(m => m.FileContents)
+<fieldset>
+    <legend>Converted Rules</legend>
+    @Html.TextAreaFor(m => m.WebConfigFile)
+</fieldset>

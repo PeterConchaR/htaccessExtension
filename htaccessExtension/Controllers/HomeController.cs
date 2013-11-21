@@ -1,13 +1,6 @@
 ﻿using htaccessExtension.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Web;
-using System.Web.Mvc;
-using System.Xml;
 using System.IO;
+using System.Web.Mvc;
 
 namespace htaccessExtension.Controllers
 {
@@ -24,12 +17,24 @@ namespace htaccessExtension.Controllers
         public ActionResult Index(HTAccessModel model)
         {
             var convert = new ConversionManager();
+            string exstWebConfig = "%Home%/site/wwwroot/Web.config";
+            string webconfig = string.Empty;
 
-            string htaccess = convert.GenerateOrUpdateWebConfig(
-                System.IO.File.OpenRead(Server.MapPath("~/TestFiles/Web.config")),
-                model.File.InputStream);
+            if(System.IO.File.Exists(exstWebConfig))
+            {
+                using (var asdf = new StreamReader(exstWebConfig))
+                {
+                    webconfig = asdf.ReadToEnd();
+                }
+            }
 
-            return View(new HTAccessModel(htaccess));
+            string htaccess = new StreamReader(model.File.InputStream).ReadToEnd();
+
+            string output = convert.GenerateOrUpdateWebConfig(
+                webconfig,
+                htaccess);
+
+            return View(new HTAccessModel { HTAccessFile = htaccess, WebConfigFile = output });
         }
 	}
 }
