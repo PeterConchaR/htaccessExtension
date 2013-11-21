@@ -5,14 +5,14 @@
     using System.Linq;
     using System.Reflection;
     using System.Security.Permissions;
+    using System.Text;
+    using System.Web;
     using System.Xml;
     using System.Xml.Linq;
 
     public class ConversionManager
     {
         protected const string _defaultWebConfig = "<?xml version=\"1.0\"?><configuration><system.webServer></system.webServer></configuration>";
-        private Action<XmlWriter, object> WriteTo;
-        private Func<string, bool, int, object> Translate;
 
         public ConversionManager()
         {
@@ -49,7 +49,7 @@
                 rewriteSection.Remove();
             }
 
-            webServerSection.Add(GenerateRewriteSectionFromHTAccess(htaccessFileContent));
+            webServerSection.Add(XElement.Parse(GenerateRewriteSectionFromHTAccess(htaccessFileContent)));
 
             if (addWebServerSection)
             {
@@ -62,18 +62,30 @@
         private string GenerateRewriteSectionFromHTAccess(string fileContents)
         {
             var iisRewriteClient = Assembly.Load("Microsoft.Web.Management.Rewrite.Client, Version=7.2.2.1, Culture=neutral, PublicKeyToken=31bf3856ad364e35");
-            CreateTranslateDelegate(iisRewriteClient);
-            CreateRewriteDelegate(iisRewriteClient);
+
+            Type translator = iisRewriteClient.GetType("Microsoft.Web.Management.Iis.Rewrite.Translation.Translator");
+            MethodInfo translate = translator.GetMethod("Translate");
+            var result = translate.Invoke(null, new object[] { fileContents, true, 0 });
+
+            Type rewriteEntry = iisRewriteClient.GetType("Microsoft.Web.Management.Iis.Rewrite.Translation.RewriteEntry");
+            MethodInfo writeTo = rewriteEntry.GetMethod("WriteTo");
 
             string config = string.Empty;
-            var result = Translate(fileContents, true, 0);
 
             using (var xmlString = new StringWriter())
             {
-                using (var xw = XmlWriter.Create(xmlString))
+                using (var xw = XmlWriter.Create(xmlString, new XmlWriterSettings
                 {
-                    WriteTo(xw, result);
+                    OmitXmlDeclaration = true,
+                    ConformanceLevel = ConformanceLevel.Fragment,
+                    Encoding = Encoding.UTF8,
+                    Indent = true,
+                    IndentChars = "\t"
+                }))
+                {
+                    writeTo.Invoke(result, new object[] { xw });
                 }
+                
                 config = xmlString.ToString();
             }
             return config;
@@ -92,22 +104,6 @@
         private static XElement FindSingle(XContainer container, string elementName)
         {
             return container.Descendants().SingleOrDefault(e => e.Name.LocalName == elementName);
-        }
-        //[ReflectionPermission(SecurityAction.Assert, Flags = ReflectionPermissionFlag.RestrictedMemberAccess)]
-        private void CreateTranslateDelegate(Assembly client)
-        {
-            Type translator = client.GetType("Microsoft.Web.Management.Iis.Rewrite.Translation.Translator");
-            MethodInfo translate = translator.GetMethod("Translate");
-            Translate = (Func<string, bool, int, object>)Delegate.CreateDelegate(typeof(Func<string, bool, int>), translate);
-
-        }
-
-        //[ReflectionPermission(SecurityAction.Assert, Flags = ReflectionPermissionFlag.RestrictedMemberAccess)]
-        private void CreateRewriteDelegate(Assembly client)
-        {
-            Type rewriteEntry = client.GetType("Microsoft.Web.Management.Iis.Rewrite.Translation.RewriteEntry");
-            MethodInfo writeTo = rewriteEntry.GetMethod("WriteTo");
-            WriteTo = (Action<XmlWriter, object>)Delegate.CreateDelegate(typeof(Action<XmlWriter, object>), writeTo);
         }
     }
 }
