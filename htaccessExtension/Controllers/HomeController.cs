@@ -1,11 +1,19 @@
-﻿using htaccessExtension.Models;
-using System.IO;
-using System.Web.Mvc;
-
-namespace htaccessExtension.Controllers
+﻿namespace htaccessExtension.Controllers
 {
+    using htaccessExtension.Models;
+    using System;
+    using System.IO;
+    using System.Web.Mvc;
+
     public class HomeController : Controller
     {
+        private readonly string WebConfigPath;
+
+        public HomeController()
+        {
+            WebConfigPath = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\web.config");
+        }
+
         //
         // GET: /Home/
         public ActionResult Index()
@@ -17,24 +25,41 @@ namespace htaccessExtension.Controllers
         public ActionResult Index(HTAccessModel model)
         {
             var convert = new ConversionManager();
-            string exstWebConfig = "%Home%/site/wwwroot/Web.config";
+            string exstWebConfig = WebConfigPath;
             string webconfig = string.Empty;
 
-            if(System.IO.File.Exists(exstWebConfig))
+            if (System.IO.File.Exists(exstWebConfig))
             {
-                using (var asdf = new StreamReader(exstWebConfig))
+                using (var reader = new StreamReader(exstWebConfig))
                 {
-                    webconfig = asdf.ReadToEnd();
+                    webconfig = reader.ReadToEnd();
                 }
             }
 
-            string htaccess = new StreamReader(model.File.InputStream).ReadToEnd();
+            string htaccess = string.Empty;
+            using (var reader = new StreamReader(model.UploadedFile.InputStream))
+            {
+                htaccess = reader.ReadToEnd();
+            }
 
-            string output = convert.GenerateOrUpdateWebConfig(
-                webconfig,
-                htaccess);
+            string output = convert.GenerateOrUpdateWebConfig(webconfig, htaccess);
 
-            return View(new HTAccessModel { HTAccessFile = htaccess, WebConfigFile = output });
+            return View(new HTAccessModel { HTAccessFile = htaccess, WebConfigFile = output, Path = exstWebConfig });
         }
-	}
+
+        [HttpPost]
+        [ValidateInput(false)]
+        public ActionResult Save(HTAccessModel model)
+        {
+            if (model.AcceptTerms)
+            {
+                using (var stream = System.IO.File.CreateText(WebConfigPath))
+                {
+                    stream.Write(model.WebConfigFile);
+                }
+            }
+
+            return RedirectToAction("Index");
+        }
+    }
 }

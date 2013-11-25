@@ -4,18 +4,25 @@
 }
 
 <h2>Import mod_rewrite Rules</h2>
+
 <fieldset>
     <legend>Rules to Import</legend>
     @using (Html.BeginForm("Index", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
     {
-        @Html.LabelFor(m => m.File)
-        @Html.TextBoxFor(m => m.File, new { type = "file", value = "..." });
+        @Html.LabelFor(m => m.UploadedFile)
+        @Html.TextBoxFor(m => m.UploadedFile, new { type = "file", value = "..." });
         <input type="submit" id="submit" value="Import" />
     }
-    @Html.TextAreaFor(m => m.HTAccessFile)
+    @Html.TextAreaFor(m => m.HTAccessFile, new { cols = "150", rows = "10", @readonly = "readonly" })
 </fieldset>
 
 <fieldset>
     <legend>Converted Rules</legend>
-    @Html.TextAreaFor(m => m.WebConfigFile)
+    @using (Html.BeginForm("Save", "Home", FormMethod.Post))
+    {
+        @Html.TextAreaFor(m => m.WebConfigFile, new { cols = "150", rows = "20", @readonly = "readonly" })
+        @Html.LabelFor(m => m.AcceptTerms)
+        @Html.CheckBoxFor(m => m.AcceptTerms)
+        <input type="submit" id="submit" value="Save" />
+    }
 </fieldset>
